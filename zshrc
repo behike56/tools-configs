@@ -13,7 +13,11 @@ fi
 # Customize to your needs...
 export TERM="xterm-256color"
 POWERLEVEL9K_MODE='nerdfont-complete'
+<<<<<<< HEAD
 source  ~/powerlevel9k-master/powerlevel9k.zsh-theme
+=======
+source  ~/powerlevel9k/powerlevel9k.zsh-theme
+>>>>>>> origin/master
 
 ######################################################
 #misc settings
@@ -105,7 +109,11 @@ POWERLEVEL9K_LEFT_SEGMENT_SEPARATOR='\ue0c6'
 POWERLEVEL9K_RIGHT_SEGMENT_SEPARATOR='\ue0c7'
 
 POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(custom_battery_status_joined time custom_wifi_signal ssh root_indicator dir dir_writable vcs)
+<<<<<<< HEAD
 POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(command_execution_time pyenv status)
+=======
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(command_execution_time php_version laravel_version status)
+>>>>>>> origin/master
 
 ######################################################
 #LEFT PROMPT
@@ -181,6 +189,7 @@ source $(dirname $(gem which colorls))/tab_complete.sh
 alias lc='colorls -lA --sd'
 
 # Coloured man pages using less as pager
+<<<<<<< HEAD
 #man() {
 #    env \
 #	      LESS_TERMCAP_mb=$(printf "\e[1;31m") \
@@ -192,6 +201,19 @@ alias lc='colorls -lA --sd'
 #	      LESS_TERMCAP_us=$(printf "\e[1;36m") \
 #	      man "$@"
 #}
+=======
+man() {
+    env \
+	      LESS_TERMCAP_mb=$(printf "\e[1;31m") \
+	      LESS_TERMCAP_md=$(printf "\e[1;31m") \
+	      LESS_TERMCAP_me=$(printf "\e[0m") \
+	      LESS_TERMCAP_se=$(printf "\e[0m") \
+	      LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
+	      LESS_TERMCAP_ue=$(printf "\e[0m") \
+	      LESS_TERMCAP_us=$(printf "\e[1;36m") \
+	      man "$@"
+}
+>>>>>>> origin/master
 
 # Aliases for a few useful commands
 alias mirrorUpdate="sudo reflector --latest 250 --protocol https --sort rate --save /etc/pacman.d/mirrorlist"
