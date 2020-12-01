@@ -73,6 +73,10 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; フォント
+(add-to-list 'default-frame-alist
+                       '(font . "Source Han Code JP-13"))
+
 ;;; テーマ
 (leaf doom-themes
   :custom
@@ -129,7 +133,8 @@
 (leaf dashboard
   :ensure t
   :require t
-  :custom((dashboard-startup-banner . "~/.emacs.d/elpa/dashboard-20201030.913/banners/babe.png"))
+  :custom((dashboard-startup-banner . "~/.emacs.d/elpa/dashboard-20201030.913/banners/1.txt"))
+  ;;:custom((dashboard-start-banner . 1))
   :config
   (dashboard-setup-startup-hook))
 
@@ -175,7 +180,7 @@
     (if (fboundp 'diminish)
         (diminish 'highlight-indent-guides-mode)))) ; column
 
-(leaf hiwin)
+;;(leaf hiwin)
 
 ;; neotree
 (leaf neotree
@@ -220,74 +225,110 @@
 ;;##############################################################################
 ;;### Python3 settings
 ;;##############################################################################
-(leaf anaconda-mode
-  :ensure t
-  :hook (python-mode-hook anaconda-eldoc-mode)
-  )
-
-(leaf lsp-mode
-  :commands lsp
-  :bind ((lsp-mode-map
-          ("C-c r" . lsp-rename)))
-  :hook (go-mode-hook)
-  :custom ((lsp-print-io)
-           (lsp-trace)
-           (lsp-print-performance)
-           (lsp-auto-guess-root . t)
-           (lsp-document-sync-method quote incremental)
-           (lsp-response-timeout . 5)
-           (lsp-prefer-flymake quote flymake)
-           (lsp-enable-completion-at-point))
+(leaf python
+  :custom (python-indent-guess-indent-offset-verbose . nil)
   :config
-  (with-eval-after-load 'lsp-mode
-    ;; (require 'lsp-clients)
-    (leaf lsp-ui
-      :bind ((lsp-mode-map
-              ("C-c C-r" . lsp-ui-peek-find-references)
-              ("C-c C-j" . lsp-ui-peek-find-definitions)
-              ("C-c i" . lsp-ui-peek-find-implementation)
-              ("C-c m" . lsp-ui-imenu)
-              ("C-c s" . lsp-ui-sideline-mode)
-              ("C-c d" . ladicle/toggle-lsp-ui-doc)))
-      :hook (lsp-mode-hook)
-      :custom ((lsp-ui-doc-enable . t)
-               (lsp-ui-doc-header . t)
-               (lsp-ui-doc-include-signature . t)
-               (lsp-ui-doc-position quote top)
-               (lsp-ui-doc-max-width . 150)
-               (lsp-ui-doc-max-height . 30)
-               (lsp-ui-doc-use-childframe . t)
-               (lsp-ui-doc-use-webkit . t)
-               (lsp-ui-flycheck-enable)
-               (lsp-ui-sideline-enable)
-               (lsp-ui-sideline-ignore-duplicate . t)
-               (lsp-ui-sideline-show-symbol . t)
-               (lsp-ui-sideline-show-hover . t)
-               (lsp-ui-sideline-show-diagnostics)
-               (lsp-ui-sideline-show-code-actions)
-               (lsp-ui-imenu-enable)
-               (lsp-ui-imenu-kind-position quote top)
-               (lsp-ui-peek-enable . t)
-               (lsp-ui-peek-peek-height . 20)
-               (lsp-ui-peek-list-width . 50)
-               (lsp-ui-peek-fontify quote on-demand))
-      :config
-      (eval-and-compile
-        (defun ladicle/toggle-lsp-ui-doc nil
-          (interactive)
-          (if lsp-ui-doc-mode
-              (progn
-                (lsp-ui-doc-mode -1)
-                (lsp-ui-doc--hide-frame))
+  (leaf elpy
+    :ensure t
+    :defvar elpy-modules python-shell-completion-native-disabled-interpreters
+    :defun elpy-enable
+    :after python
+    :custom
+    (python-shell-interpreter . "jupyter")
+    (python-shell-interpreter-args . "console --simple-prompt")
+    (python-shell-prompt-detect-failure-warning . nil)
+    :init (elpy-enable)
+    :hook (elpy-mode-hook . (lambda () (add-hook 'before-save-hook 'elpy-format-code nil t)))
+    :config
+    (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+    (add-to-list 'python-shell-completion-native-disabled-interpreters "jupyter"))
+  (leaf pipenv
+    :ensure t
+    :after python
+    :require t
+    :defvar python-shell-interpreter python-shell-interpreter-args python-shell-virtualenv-root pyvenv-activate
+    :defun pipenv--force-wait pipenv-deactivate pipenv-projectile-after-switch-extended pipenv-venv
+    :custom
+    (pipenv-projectile-after-switch-function . #'pipenv-projectile-after-switch-extended)
+    :init
+    (defun pipenv-auto-activate ()
+      (pipenv-deactivate)
+      (pipenv--force-wait (pipenv-venv))
+      (when python-shell-virtualenv-root
+        (setq-local pyvenv-activate (directory-file-name python-shell-virtualenv-root))
+        (setq-local python-shell-interpreter "pipenv")
+        (setq-local python-shell-interpreter-args "run jupyter console --simple-prompt")))
+    :hook (elpy-mode-hook . pipenv-auto-activate)
+    :config
+    (pyvenv-tracking-mode)
+    (add-to-list 'python-shell-completion-native-disabled-interpreters "pipenv"))
+  (leaf ein :ensure t))
 
-            (lsp-ui-doc-mode 1)))))))
 
-(leaf company-lsp
-  :ensure t
-    :custom ((company-lsp-cache-candidates . t)
-             (company-lsp-async . t)
-             (company-lsp-enable-recompletion))
-    :require t)
+;; (leaf lsp-mode
+;;   :commands lsp
+;;   :bind ((lsp-mode-map
+;;           ("C-c r" . lsp-rename)))
+;;   :hook
+;;   (go-mode-hook)
+;;   :custom ((lsp-print-io)
+;;            (lsp-trace)
+;;            (lsp-print-performance)
+;;            (lsp-auto-guess-root . t)
+;;            (lsp-document-sync-method quote incremental)
+;;            (lsp-response-timeout . 5)
+;;            (lsp-prefer-flymake quote flymake)
+;;            (lsp-enable-completion-at-point))
+;;   :config
+;;   (with-eval-after-load 'lsp-mode
+;;     ;; (require 'lsp-clients)
+;;     (leaf lsp-ui
+;;       :bind ((lsp-mode-map
+;;               ("C-c C-r" . lsp-ui-peek-find-references)
+;;               ("C-c C-j" . lsp-ui-peek-find-definitions)
+;;               ("C-c i" . lsp-ui-peek-find-implementation)
+;;               ("C-c m" . lsp-ui-imenu)
+;;               ("C-c s" . lsp-ui-sideline-mode)
+;;               ("C-c d" . ladicle/toggle-lsp-ui-doc)))
+;;       :hook (lsp-mode-hook)
+;;       :custom ((lsp-ui-doc-enable . t)
+;;                (lsp-ui-doc-header . t)
+;;                (lsp-ui-doc-include-signature . t)
+;;                (lsp-ui-doc-position quote top)
+;;                (lsp-ui-doc-max-width . 150)
+;;                (lsp-ui-doc-max-height . 30)
+;;                (lsp-ui-doc-use-childframe . t)
+;;                (lsp-ui-doc-use-webkit . t)
+;;                (lsp-ui-flycheck-enable)
+;;                (lsp-ui-sideline-enable)
+;;                (lsp-ui-sideline-ignore-duplicate . t)
+;;                (lsp-ui-sideline-show-symbol . t)
+;;                (lsp-ui-sideline-show-hover . t)
+;;                (lsp-ui-sideline-show-diagnostics)
+;;                (lsp-ui-sideline-show-code-actions)
+;;                (lsp-ui-imenu-enable)
+;;                (lsp-ui-imenu-kind-position quote top)
+;;                (lsp-ui-peek-enable . t)
+;;                (lsp-ui-peek-peek-height . 20)
+;;                (lsp-ui-peek-list-width . 50)
+;;                (lsp-ui-peek-fontify quote on-demand))
+;;       :config
+;;       (eval-and-compile
+;;         (defun ladicle/toggle-lsp-ui-doc nil
+;;           (interactive)
+;;           (if lsp-ui-doc-mode
+;;               (progn
+;;                 (lsp-ui-doc-mode -1)
+;;                 (lsp-ui-doc--hide-frame))
+
+;;             (lsp-ui-doc-mode 1)))))))
+
+;; (leaf company-lsp
+;;   :ensure t
+;;     :custom ((company-lsp-cache-candidates . t)
+;;              (company-lsp-async . t)
+;;              (company-lsp-enable-recompletion))
+;;     :require t)
 ;; cclsは別途hookする
 ;; (use-package ccls
 ;;   :custom (ccls-executable "/usr/local/bin/ccls")
@@ -300,6 +341,47 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;######################################
+;; dart-lsp
+;;######################################
+(leaf leaf-convert
+  :config
+  (condition-case nil
+      (require 'use-package)
+    (file-error
+     (require 'package)
+     (add-to-list 'package-archives
+                  '("melpa" . "http://melpa.org/packages/"))
+     (package-initialize)
+     (package-refresh-contents)
+     (package-install 'use-package)
+     (require 'use-package))))
+
+(leaf lsp-mode
+  :ensure t
+  :require t)
+
+(leaf lsp-dart
+  :ensure t
+  :commands lsp
+  :hook ((dart-mode-hook . lsp)))
+
+;; Optional packages
+(leaf projectile
+  :ensure t
+  :require t) ;; project management
+(leaf yasnippet
+  :ensure t
+  :require t
+  :config
+  (yas-global-mode)) ;; snipets
+;;(use-package lsp-ui :ensure t) ;; UI for LSP
+;;(use-package company :ensure t) ;; Auto-complete
+
+;; Optional Flutter packages
+(leaf hover
+  :ensure t
+  :require t) ;; run app from desktop without emulator
 
 
 (leaf cus-start
@@ -349,17 +431,17 @@
   :config
   (global-auto-revert-mode 1))
 
-(leaf cc-mode
-  :defvar c-basic-offset
-  :bind ((c-mode-base-map :package cc-mode
-                          ("C-c c" . compile)))
-  :config
-  (leaf-keywords-handler-mode-hook cc-mode c-mode-hook
-    (c-set-style "bsd")
-    (setq c-basic-offset 4))
-  (leaf-keywords-handler-mode-hook cc-mode c++-mode-hook
-    (c-set-style "bsd")
-    (setq c-basic-offset 4)))
+;; (leaf cc-mode
+;;   :defvar c-basic-offset
+;;   :bind ((c-mode-base-map :package cc-mode
+;;                           ("C-c c" . compile)))
+;;   :config
+;;   (leaf-keywords-handler-mode-hook cc-mode c-mode-hook
+;;     (c-set-style "bsd")
+;;     (setq c-basic-offset 4))
+;;   (leaf-keywords-handler-mode-hook cc-mode c++-mode-hook
+;;     (c-set-style "bsd")
+;;     (setq c-basic-offset 4)))
 
 (leaf delsel
   :commands delete-selection-mode
