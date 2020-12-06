@@ -23,6 +23,8 @@
 
 ;;; Code:
 
+(exec-path-from-shell-initialize)
+
 ;; this enables this running method
 ;;   emacs -q -l ~/.debug.emacs.d/init.el
 ;; バイトコンパイル時のワーニングを出ないようにする
@@ -75,7 +77,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フォント
 (add-to-list 'default-frame-alist
-                       '(font . "Source Han Code JP-13"))
+                       '(font . "Source Han Code JP-15"))
 
 ;;; テーマ
 (leaf doom-themes
@@ -245,7 +247,7 @@
   (leaf pipenv
     :ensure t
     :after python
-    :require t
+    (when :require nil t)
     :defvar python-shell-interpreter python-shell-interpreter-args python-shell-virtualenv-root pyvenv-activate
     :defun pipenv--force-wait pipenv-deactivate pipenv-projectile-after-switch-extended pipenv-venv
     :custom
@@ -589,8 +591,9 @@
                             '(company-sort-by-occurrence)
                             "Customized with leaf in company block")
     (global-company-mode 1)
-    (with-eval-after-load 'company
-      (blackout 'company-mode nil))))
+    ;; (with-eval-after-load 'company
+    ;;  (blackout 'company-mode nil))
+    ))
 
 (leaf company-c-headers
   :defvar company-backends
