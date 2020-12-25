@@ -75,9 +75,81 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;##############################################################################
+;;### Python3 settings
+;;##############################################################################
+(leaf python
+  :mode ("\\.py\\'"))
+
+(leaf lsp-mode
+  :commands lsp lsp/python-mode-hook lsp-deferred
+  :hook (python-mode-hook
+         (python-mode-hook . lsp/python-mode-hook))
+  :config
+  (with-eval-after-load 'lsp-mode
+    (dolist (dir
+             '("[/\\\\]\\.venv$" "[/\\\\]\\.mypy_cache$" "[/\\\\]__pycache__$"))
+      (push dir lsp-file-watch-ignored))
+    (defvar lsp-auto-configure t)
+    (defvar lsp-enable-completion-at-point t)
+    (defvar lsp-enable-imenu nil)
+    (defvar lsp-enable-xref t)
+    (defvar lsp-diagnostics-provider :flycheck)
+    (defvar lsp-eldoc-enable-hover t)
+    (defvar lsp-eldoc-render-all nil)
+    (defvar lsp-headerline-breadcrumb-enable t)
+    (defvar lsp-headerline-breadcrumb-segments '(project file symbols))
+    (defvar lsp-enable-snippet t)
+    (setq dap-ui-menu-items nil)
+    (defun lsp/python-mode-hook nil
+      (when (fboundp 'company-mode)
+        (setq company-minimum-prefix-length 1
+              company-idle-delay 0.0)))))
+
+(leaf lsp-pyright
+  :preface
+  (defun lsp-pyright/python-mode-hook nil
+    (require 'lsp-pyright)
+    (when (fboundp 'flycheck-mode)
+      (setq flycheck-disabled-checkers '(python-mypy))))
+
+  :commands lsp-pyright/python-mode-hook
+  :hook ((python-mode-hook . lsp-pyright/python-mode-hook)))
+
+(leaf lsp-ui
+  :after lsp-mode
+  :bind ((lsp-ui-mode-map
+          ("M-." . lsp-ui-peek-find-definitions)
+          ("M-?" . lsp-ui-peek-find-references)))
+  :hook (lsp-mode-hook)
+  :config
+  (with-eval-after-load 'lsp-ui
+    (setq lsp-ui-peek-enable t)
+    (setq lsp-ui-peek-always-show t)
+    (setq lsp-ui-sideline-show-diagnostics t)
+    (setq lsp-ui-sideline-show-code-actions t)))
+
+(leaf imenu-list
+  :ensure t
+  :require t)
+
+(leaf company
+  :init
+  (global-company-mode t)
+  :require t)
+
+(leaf flycheck
+  :init
+  (global-flycheck-mode)
+  :require t)
+
+;;##############################################################################
+;;### Python3 settings anaconda-mode, LSP
+;;##############################################################################
+
 ;; フォント
 (add-to-list 'default-frame-alist
-                       '(font . "Source Han Code JP-15"))
+                       '(font . "Source Han Code JP-13"))
 
 ;;; テーマ
 (leaf doom-themes
@@ -88,7 +160,7 @@
   (doom-modeline-bar . '((t (:background "#6272a4"))))
   :require t
   :config
-  (load-theme 'doom-moonlight t)
+  (load-theme 'doom-palenight t)
   (doom-themes-neotree-config)
   (doom-themes-org-config))
 
@@ -104,7 +176,8 @@
   :custom ((doom-modeline-buffer-file-name-style quote truncate-with-project)
            (doom-modeline-icon . t)
            (doom-modeline-major-mode-icon)
-           (doom-modeline-minor-modes))
+           (doom-modeline-minor-modes)
+           (python-shell-interpreter . "python3"))
   :config
   (with-eval-after-load 'doom-modeline
     (line-number-mode 0)
@@ -114,24 +187,6 @@
       '(misc-info persp-name lsp github debug minor-modes input-method major-mode process vcs checker))))
 
 ;;; ダッシュボード
-;; (leaf dashboard
-;;   :commands dashboard-setup-startup-hook
-;;   :hook ((after-init-hook . dashboard-setup-startup-hook))
-;;   :custom ((dashboard-startup-banner . 2)
-;;            (dashboard-items quote
-;;                             ((recents . 15)
-;;                              (projects . 5)
-;;                              (bookmarks . 5)
-;;                              (agenda . 5))))
-;;   :config
-;;   (with-eval-after-load 'dashboard
-;;     (add-to-list 'dashboard-items
-;;                  '(agenda)
-;;                  t)
-;;     (if (fboundp 'diminish)
-;;         (diminish 'dashboard-mode))
-;;     (if (fboundp 'diminish)
-;;         (diminish 'page-break-lines-mode))))
 (leaf dashboard
   :ensure t
   :require t
@@ -155,7 +210,6 @@
   :custom ((ddskk-posframe-border-width . 2))
   :custom-face ((ddskk-posframe . '((t (:background "#e16b8c"))))
                 (ddskk-posframe-border . '((t (:background "#d0104c"))))))
-
 
 ;;; GUI設定
 (progn
@@ -193,7 +247,8 @@
       (let ((project-dir (ignore-errors
                            (projectile-project-root)))
             (file-name (buffer-file-name))
-            (neo-smart-open t))
+            ;;(neo-smart-open t)
+            )
         (if (and
              (fboundp 'neo-global--window-exists-p)
              (neo-global--window-exists-p))
@@ -224,121 +279,6 @@
     (bind-keys :package neotree
                ("<f9>" . neotree-projectile-toggle))))
 
-;;##############################################################################
-;;### Python3 settings
-;;##############################################################################
-(leaf python
-  :custom (python-indent-guess-indent-offset-verbose . nil)
-  :config
-  (leaf elpy
-    :ensure t
-    :defvar elpy-modules python-shell-completion-native-disabled-interpreters
-    :defun elpy-enable
-    :after python
-    :custom
-    (python-shell-interpreter . "jupyter")
-    (python-shell-interpreter-args . "console --simple-prompt")
-    (python-shell-prompt-detect-failure-warning . nil)
-    :init (elpy-enable)
-    :hook (elpy-mode-hook . (lambda () (add-hook 'before-save-hook 'elpy-format-code nil t)))
-    :config
-    (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
-    (add-to-list 'python-shell-completion-native-disabled-interpreters "jupyter"))
-  (leaf pipenv
-    :ensure t
-    :after python
-    (when :require nil t)
-    :defvar python-shell-interpreter python-shell-interpreter-args python-shell-virtualenv-root pyvenv-activate
-    :defun pipenv--force-wait pipenv-deactivate pipenv-projectile-after-switch-extended pipenv-venv
-    :custom
-    (pipenv-projectile-after-switch-function . #'pipenv-projectile-after-switch-extended)
-    :init
-    (defun pipenv-auto-activate ()
-      (pipenv-deactivate)
-      (pipenv--force-wait (pipenv-venv))
-      (when python-shell-virtualenv-root
-        (setq-local pyvenv-activate (directory-file-name python-shell-virtualenv-root))
-        (setq-local python-shell-interpreter "pipenv")
-        (setq-local python-shell-interpreter-args "run jupyter console --simple-prompt")))
-    :hook (elpy-mode-hook . pipenv-auto-activate)
-    :config
-    (pyvenv-tracking-mode)
-    (add-to-list 'python-shell-completion-native-disabled-interpreters "pipenv"))
-  (leaf ein :ensure t))
-
-
-;; (leaf lsp-mode
-;;   :commands lsp
-;;   :bind ((lsp-mode-map
-;;           ("C-c r" . lsp-rename)))
-;;   :hook
-;;   (go-mode-hook)
-;;   :custom ((lsp-print-io)
-;;            (lsp-trace)
-;;            (lsp-print-performance)
-;;            (lsp-auto-guess-root . t)
-;;            (lsp-document-sync-method quote incremental)
-;;            (lsp-response-timeout . 5)
-;;            (lsp-prefer-flymake quote flymake)
-;;            (lsp-enable-completion-at-point))
-;;   :config
-;;   (with-eval-after-load 'lsp-mode
-;;     ;; (require 'lsp-clients)
-;;     (leaf lsp-ui
-;;       :bind ((lsp-mode-map
-;;               ("C-c C-r" . lsp-ui-peek-find-references)
-;;               ("C-c C-j" . lsp-ui-peek-find-definitions)
-;;               ("C-c i" . lsp-ui-peek-find-implementation)
-;;               ("C-c m" . lsp-ui-imenu)
-;;               ("C-c s" . lsp-ui-sideline-mode)
-;;               ("C-c d" . ladicle/toggle-lsp-ui-doc)))
-;;       :hook (lsp-mode-hook)
-;;       :custom ((lsp-ui-doc-enable . t)
-;;                (lsp-ui-doc-header . t)
-;;                (lsp-ui-doc-include-signature . t)
-;;                (lsp-ui-doc-position quote top)
-;;                (lsp-ui-doc-max-width . 150)
-;;                (lsp-ui-doc-max-height . 30)
-;;                (lsp-ui-doc-use-childframe . t)
-;;                (lsp-ui-doc-use-webkit . t)
-;;                (lsp-ui-flycheck-enable)
-;;                (lsp-ui-sideline-enable)
-;;                (lsp-ui-sideline-ignore-duplicate . t)
-;;                (lsp-ui-sideline-show-symbol . t)
-;;                (lsp-ui-sideline-show-hover . t)
-;;                (lsp-ui-sideline-show-diagnostics)
-;;                (lsp-ui-sideline-show-code-actions)
-;;                (lsp-ui-imenu-enable)
-;;                (lsp-ui-imenu-kind-position quote top)
-;;                (lsp-ui-peek-enable . t)
-;;                (lsp-ui-peek-peek-height . 20)
-;;                (lsp-ui-peek-list-width . 50)
-;;                (lsp-ui-peek-fontify quote on-demand))
-;;       :config
-;;       (eval-and-compile
-;;         (defun ladicle/toggle-lsp-ui-doc nil
-;;           (interactive)
-;;           (if lsp-ui-doc-mode
-;;               (progn
-;;                 (lsp-ui-doc-mode -1)
-;;                 (lsp-ui-doc--hide-frame))
-
-;;             (lsp-ui-doc-mode 1)))))))
-
-;; (leaf company-lsp
-;;   :ensure t
-;;     :custom ((company-lsp-cache-candidates . t)
-;;              (company-lsp-async . t)
-;;              (company-lsp-enable-recompletion))
-;;     :require t)
-;; cclsは別途hookする
-;; (use-package ccls
-;;   :custom (ccls-executable "/usr/local/bin/ccls")
-;;   :hook ((anaconda-mode) .
-;;          (lambda () (require 'ccls) (lsp))))
-;;##############################################################################
-;;### Python3 settings anaconda-mode, LSP
-;;##############################################################################
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -433,18 +373,6 @@
   :config
   (global-auto-revert-mode 1))
 
-;; (leaf cc-mode
-;;   :defvar c-basic-offset
-;;   :bind ((c-mode-base-map :package cc-mode
-;;                           ("C-c c" . compile)))
-;;   :config
-;;   (leaf-keywords-handler-mode-hook cc-mode c-mode-hook
-;;     (c-set-style "bsd")
-;;     (setq c-basic-offset 4))
-;;   (leaf-keywords-handler-mode-hook cc-mode c++-mode-hook
-;;     (c-set-style "bsd")
-;;     (setq c-basic-offset 4)))
-
 (leaf delsel
   :commands delete-selection-mode
   :config
@@ -462,12 +390,22 @@
   :ensure t
   :hook (prog-mode-hook))
 
+;; (leaf paren
+;;   :hook (after-init-hook)
+;;   :commands show-paren-mode
+;;   :custom ((show-paren-delay . 0.1))
+;;   :config
+;;   (show-paren-mode 1))
 (leaf paren
-  ;; :hook (after-init-hook)
+  :ensure nil
   :commands show-paren-mode
-  :custom ((show-paren-delay . 0.1))
-  :config
-  (show-paren-mode 1))
+  :hook ((after-init-hook . show-paren-mode))
+  :custom ((show-paren-style quote mixed)
+           (show-paren-when-point-inside-paren . t)
+           (show-paren-when-point-in-periphery . t))
+  :custom-face ((show-paren-match quote
+                                  ((nil
+                                    (:background "#44475a" :foreground "#f1fa8c"))))))
 
 (leaf files
   :custom ((auto-save-timeout . 15)
@@ -479,10 +417,6 @@
                                     ("^/\\(\\(?:\\([a-zA-Z0-9-]+\\):\\(?:\\([^/|: 	]+\\)@\\)?\\(\\(?:[a-zA-Z0-9_.%-]+\\|\\[\\(?:\\(?:[a-zA-Z0-9]*:\\)+[a-zA-Z0-9.]+\\)?]\\)\\(?:#[0-9]+\\)?\\)?|\\)+\\)?\\([a-zA-Z0-9-]+\\):\\(?:\\([^/|: 	]+\\)@\\)?\\(\\(?:[a-zA-Z0-9_.%-]+\\|\\[\\(?:\\(?:[a-zA-Z0-9]*:\\)+[a-zA-Z0-9.]+\\)?]\\)\\(?:#[0-9]+\\)?\\)?:\\([^\n]*\\'\\)")))
            (version-control . t)
            (delete-old-versions . t)))
-
-;; (leaf startup
-;;   :custom ((auto-save-list-file-prefix . "~/.emacs.d/backup/.saves-")))
-
 
 (leaf startup
   :doc "process Emacs shell arguments"
